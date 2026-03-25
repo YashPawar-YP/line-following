@@ -1,9 +1,9 @@
 #include "esp32-hal-ledc.h"
 
-//sensor pins
-const int sensor_pins[] = {23, 13, 16, 26, 24};
-int sensor_max[] = {4095, 4095, 4095, 4095, 4095};
-int sensor_min[] = {4095, 4095, 4095, 4095, 4095};
+//sensor pins - only 2 sensors (left and right)
+const int sensor_pins[] = {15, 21};  // S1=15 (left), S5=21 (right)
+int sensor_max[] = {4095, 4095};
+int sensor_min[] = {4095, 4095};
 
 //led pin
 #define led_pin 35
@@ -22,16 +22,15 @@ int sensor_min[] = {4095, 4095, 4095, 4095, 4095};
 #define pwm_bits 8
 
 //pid
-float Kp = 25.0;   // reduce robot oscillations
+float Kp = 35.0;   // reduce robot oscillations
 float Ki = 0.0;    // adds tiny errors steady drift
-float Kd = 15.0;   // check nature of error
+float Kd = 20.0;   // check nature of error
 float last_error = 0;
 float integral = 0;
 
 //speed
 int max_speed = 230, base_speed = 150, min_speed = 0;
 
-/-----------------##------------------------------------------
 //motors
 void setRightMotor(int speed) {
   speed = constrain(speed, -255, 255);
@@ -65,69 +64,77 @@ void stopMotor() {
   ledcWrite(pwm2, 0);
 }
 
-//-----------------##------------------------------------------
+//calc position
+float calcPosition(int arr[2]) {
+  
+  long left_value = arr[0];
+  long right_value = arr[1];
+  long total = left_value + right_value;
+  
+  if (total < 100) {  // line lost
+    return last_error > 0 ? 1.0 : -1.0;
+  }
+  
+  // Calculate position: -1 = line on left sensor only
+  //                  0 = line centered between sensors
+  //                  +1 = line on right sensor only
+  float position = (float)(right_value - left_value) / total;
+  
+  // Constrain to -1 to 1 range
+  if (position > 1.0) position = 1.0;
+  if (position < -1.0) position = -1.0;
+  
+  return position;
+}
+
+//calibrate
+void calibration() {
+  Serial.println("Calibrating... move bot over line");
+  digitalWrite(led_pin, HIGH);
+  digitalWrite(stby, HIGH);
+  
+  // Test sensor readings
+  Serial.println("Sensor readings during calibration:");
+  
+  unsigned long int start = millis();
+  while (millis() - start < 3000) {
+    for (int i = 0; i < 2; i++) {
+      int val = analogRead(sensor_pins[i]);
+      Serial.printf("S%d: %d ", i+1, val);  // Print raw values
+      if (val > sensor_max[i]) sensor_max[i] = val;
+      if (val < sensor_min[i]) sensor_min[i] = val;
+    }
+    Serial.println();
+    
+    //slow spin
+    setLeftMotor(80);
+    setRightMotor(-80);
+    delay(100);  // Increased delay to see serial output
+  }
+
+  stopMotor();
+  digitalWrite(led_pin, LOW);
+  
+  Serial.println("Calibration done..");
+  for (int i = 0; i < 2; i++) {
+    Serial.printf("S%d: min: %d max: %d\n", i + 1, sensor_min[i], sensor_max[i]);
+  }
+}
+
 //sensor read
-void ReadSensor(int arr[5]) {
-  for (int i = 0; i < 5; i++) {
+void ReadSensor(int arr[2]) {
+  for (int i = 0; i < 2; i++) {
     int raw = analogRead(sensor_pins[i]);
     arr[i] = map(raw, sensor_min[i], sensor_max[i], 0, 1000);
     arr[i] = constrain(arr[i], 0, 1000);
   }
 }
 
-//-----------------##------------------------------------------
-//position calc
-float calcPosition(int arr[5]) {
-  const int weights[] = {-2, -1, 0, 1, 2};
-  long weighted_sum = 0, total_sum = 0;
-
-  for (int i = 0; i < 5; i++) {
-    weighted_sum += (long)arr[i] * weights[i];
-    total_sum += arr[i];
-  }
-
-  if (total_sum < 100) {  // on white line
-    // total is very small so it's like not detecting any line
-    return last_error > 0 ? -2.0 : 2.0;
-  }
-  return (float)weighted_sum / total_sum;
-}
-
-//-----------------##------------------------------------------
-void calibration() {
-  Serial.println("Calibrating... move bot over line");
-  digitalWrite(led_pin, HIGH);
-  digitalWrite(stby, HIGH);  
-  
-  unsigned long int start = millis();
-  while (millis() - start < 3000) {
-    for (int i = 0; i < 5; i++) {
-      int val = analogRead(sensor_pins[i]);
-      if (val > sensor_max[i]) sensor_max[i] = val;
-      if (val < sensor_min[i]) sensor_min[i] = val;
-    }
-    
-    //slow spin
-    setLeftMotor(80);
-    setRightMotor(-80);
-    delay(10);
-  }
-
-  stopMotor();
-  digitalWrite(led_pin, LOW);
-
-  Serial.println("Calibration done..");
-  for (int i = 0; i < 5; i++) {
-    Serial.printf("S%d: min: %d max: %d\n", i + 1, sensor_min[i], sensor_max[i]);
-  }
-}
-
-//-----------------##------------------------------------------
 void setup() {
   Serial.begin(115200);
 
   //sensor pins
-  for (int i = 0; i < 5; i++) {
+  for (int i = 0; i < 2; i++) {
     pinMode(sensor_pins[i], INPUT);
   }
 
@@ -153,11 +160,10 @@ void setup() {
   Serial.println("Starting...");
 }
 
-//-----------------##------------------------------------------
 void loop() {
   digitalWrite(stby, HIGH); //motors start
   
-  int sensors[5];
+  int sensors[2];
   ReadSensor(sensors);
 
   float position = calcPosition(sensors);
