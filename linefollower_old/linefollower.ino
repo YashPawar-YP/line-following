@@ -1,16 +1,14 @@
 // sensor pins (digital)
-const int sensor_pins[] = {34, 35, 32, 26, 25};
+const int sensor_pins[] = {19, 20, 21, 22, 23};
 
 // Motor Driver
-const int AIN1 = 4;
-const int AIN2 = 5;
-const int PWMA = 16;
+const int AIN1 = 7;
+const int AIN2 = 8;
+const int PWMA = 12;
 
-const int BIN1 = 18;
-const int BIN2 = 19;
-const int PWMB = 23;
-
-const int STBY = 17;
+const int BIN1 = 9;
+const int BIN2 = 10;
+const int PWMB = 13;
 
 // variables
 float Kp = 1.5;
@@ -68,9 +66,7 @@ void setup() {
   pinMode(AIN2, OUTPUT);
   pinMode(BIN1, OUTPUT);
   pinMode(BIN2, OUTPUT);
-  pinMode(STBY, OUTPUT);
 
-  digitalWrite(STBY, HIGH); // wake up from standby mode
   last_time = micros();
 }
 
