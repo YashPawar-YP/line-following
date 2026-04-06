@@ -79,7 +79,7 @@ def plot_data(df):
     plt.show()
 
 # Usage
-file_name = 'lsa-out-vertical'
+file_name = 'lsa_output'
 try:
     sensor_data = parse_lsa_data(file_name)
     plot_data(sensor_data)
