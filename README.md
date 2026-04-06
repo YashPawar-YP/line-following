@@ -11,8 +11,12 @@ T(J)-junction && Cross:- sudden sensors=0. best way is ignore the detection and 
 	Can keep a track of it like #1 time sensors=0 act as if it is T-junction, for #3 act as cross. keep a count of junction keep on increasing it after every detection(manual method we need to add those movements after seeing track). 
 	Better way is to freeze PID for some time and react based on situation and then start pid again. Manage sensors reading as it can be overflowed and reading can get corrupted. (in Uno no issue as 32kb of ram) 
 
-Diodes:- 
-Distractions from main track:- .
+Diodes:- all black -- \ or / -- all black -- line resumed. 
+	2 cases:
+		1. (/)center lights first,then edges: (s1--s2--s3) || (s6--s5--s4)
+		2. (\)edge lights first,then center: (s3--s2--s1) || (s4--s5--s6)
+
+Distractions from main track:- 
 
 How to distinguish betn sharp turns and discontinous line?
-	Almost same case as sensors=255 suddenly. For sharp turns last pos edge sensors detects line. For discontinous line after gap covers again detects line. 
+	Almost same case as sensors=255 suddenly. For sharp turns last pos edge sensors detects line. For discontinous line after gap covers again detects line.
