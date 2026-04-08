@@ -4,7 +4,7 @@
 const int AIN1 = 10, AIN2 = 8, PWMA = 5;
 const int BIN1 = 6, BIN2 = 9, PWMB = 7;
 
-SoftwareSerial lsa_serial(4, 11); // Moved TX from 7 to 11 to avoid overlap with PWMB
+SoftwareSerial lsa_serial(3, 2); // RX = 3, TX = 2
 
 // PID Constants
 float Kp = 800.0, Ki = 0.01, Kd = 15.0; 
@@ -17,6 +17,8 @@ void setup() {
     
     int pins[] = {AIN1, AIN2, PWMA, BIN1, BIN2, PWMB};
     for (int p : pins) pinMode(p, OUTPUT);
+
+    performCalibration();
 
     Serial.println(F("--- LSA08 PID Test ---"));
     Serial.print(F("Kp: ")); Serial.print(Kp);
@@ -34,6 +36,21 @@ void drive(int left_speed, int right_speed) {
     analogWrite(PWMB, constrain(abs(right_speed), 0, 255));
 }
 
+void performCalibration() {
+    Serial.println(F("Calibration started: Sweeping..."));
+    
+    // Command the LSA08 to perform calibration immediately
+    // Address: 0x01, Command: 0x43 ('C'), Data: 0x00, Checksum: 0x44
+    lsa_serial.write((byte)0x01);
+    lsa_serial.write((byte)0x43);
+    lsa_serial.write((byte)0x00);
+    lsa_serial.write((byte)0x44);
+
+    delay(10000);
+    Serial.println(F("Calibration finished!"));
+    delay(500); // Give user time to see it finished
+}
+
 float get_line_error() {
     // Clear overflow if we're falling behind
     if (lsa_serial.available() > 30) {
@@ -48,18 +65,22 @@ float get_line_error() {
     // Process frame if enough data is available
     if (lsa_serial.available() >= 9) {
         lsa_serial.read(); // Consume the header 0x0D
+        lsa_serial.read(); // Consume Sensor 0 (discarded)
         
         long sum = 0, avg = 0;
-        for (int i = 0; i < 8; i++) {
+        const int SENSOR_WEIGHTS[6] = {-5, -3, -1, 1, 3, 5};
+
+        for (int i = 0; i < 6; i++) {
             int val = lsa_serial.read();
             
             // NOISE GATE: Low values (background noise) are treated as 0
             int reading = (val > 20) ? val : 0; 
             
-            int weight = (i * 10) - 35; // Centers 8 sensors: -35, -25, -15, -5, 5, 15, 25, 35
-            sum += (long)reading * weight;
+            sum += (long)reading * SENSOR_WEIGHTS[i];
             avg += reading;
         }
+        
+        lsa_serial.read(); // Consume Sensor 7 (discarded)
         
         if (avg == 0) return last_error; // Keep last error if line is lost
         return (float)sum / avg; 
