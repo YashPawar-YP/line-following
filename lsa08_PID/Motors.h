@@ -4,9 +4,10 @@
 #include <Arduino.h>
 
 // Pins
-const int PIN_AIN1 = 5, PIN_AIN2 = 6, PIN_PWMA = 11;
-const int PIN_BIN1 = 9, PIN_BIN2 = 8, PIN_PWMB = 10;
-const int motor_pins[] = {PIN_AIN1, PIN_AIN2, PIN_PWMA, PIN_BIN1, PIN_BIN2, PIN_PWMB};
+const int AIN1 = 10, AIN2 = 8, PWMA = 5;
+const int BIN1 = 6, BIN2 = 9, PWMB = 7;
+
+const int motor_pins[] = {AIN1, AIN2, PWMA, BIN1, BIN2, PWMB};
 
 inline void initializeMotorHardware() {
     for (int p : motor_pins) {
