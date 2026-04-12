@@ -19,13 +19,13 @@ inline void applyMotorSpeeds(float left, float right) {
     int l_pwm = constrain((int)roundf(left),  -255, 255);
     int r_pwm = constrain((int)roundf(right), -255, 255);
 
-    digitalWrite(PIN_AIN1, l_pwm >= 0 ? HIGH : LOW);
-    digitalWrite(PIN_AIN2, l_pwm >= 0 ? LOW  : HIGH);
-    analogWrite(PIN_PWMA, abs(l_pwm));
+    digitalWrite(AIN1, l_pwm >= 0 ? HIGH : LOW);
+    digitalWrite(AIN2, l_pwm >= 0 ? LOW  : HIGH);
+    analogWrite(PWMA, abs(l_pwm));
 
-    digitalWrite(PIN_BIN1, r_pwm >= 0 ? HIGH : LOW);
-    digitalWrite(PIN_BIN2, r_pwm >= 0 ? LOW  : HIGH);
-    analogWrite(PIN_PWMB, abs(r_pwm));
+    digitalWrite(BIN1, r_pwm >= 0 ? HIGH : LOW);
+    digitalWrite(BIN2, r_pwm >= 0 ? LOW  : HIGH);
+    analogWrite(PWMB, abs(r_pwm));
 }
 
 #endif
